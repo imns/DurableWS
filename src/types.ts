@@ -1,7 +1,6 @@
 // types.ts
 export interface WebSocketClientConfig {
     url: string;
-    accessToken?: string;
     autoConnect?: boolean;
     maxReconnectAttempts?: number;
     maxQueueSize?: number;

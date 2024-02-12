@@ -11,7 +11,7 @@ import { WebSocketClientState } from "./types";
 
 let instance: WebSocketClient | null = null;
 
-export async function createClient(
+export async function defineClient(
     config: WebSocketClientConfig
 ): Promise<WebSocketClient> {
     if (instance) {

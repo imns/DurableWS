@@ -7,7 +7,6 @@ DurableWS is a resilient, TypeScript-based WebSocket client designed for modern 
 -   **Automatic Reconnection**: Implements exponential backoff strategy to handle disconnections gracefully.
 -   **Idle Detection**: Automatically detects idle states and triggers custom handlers.
 -   **Message Queueing**: Outgoing messages are queued when the connection is down and sent when it's restored.
--   **Subscription Management**: Simplifies subscribing to topics/channels with ease.
 -   **TypeScript Support**: Fully typed interfaces for a better development experience.
 
 ## Installation
@@ -27,29 +26,35 @@ yarn add durablews
 To get started with DurableWS, first import the client in your project:
 
 ```ts
-import { createClient } from "durablews";
+import { defineClient } from "durablews";
 ```
 
 Create a new WebSocket client instance by specifying the configuration:
 
 ```ts
-const client = await createClient({
+const client = await defineClient({
     url: "wss://your.websocket.server",
     autoConnect: true, // Automatically connects
     maxReconnectAttempts: 5,
     maxQueueSize: 50,
     idleTimeout: 300000, // 5 minutes
     getToken: async () => {
-        const response = await fetch("/my/token/issuer").then((r) => r.json());
-        return response.token;
-    },
+        const response = await fetch("/my/token/issuer");
+        const data = await response.json();
+        return data.token;
+    }
 });
 ```
 
 ### Sending Messages
 
 ```typescript
-client.send({ action: "greet", data: { message: "Hello, World!" } });
+client.send({
+    action: "greet",
+    data: {
+        message: "Hello, World!"
+    }
+});
 ```
 
 ### Handling Events
@@ -78,14 +83,13 @@ client.onIdle(() => {
 
 ## API Reference
 
-### `createClient(config: WebSocketClientConfig): Promise<WebSocketClient>`
+### `defineClient(config: WebSocketClientConfig): Promise<WebSocketClient>`
 
 Initializes and returns a WebSocket client instance.
 
 #### Config Options
 
 -   `url`: WebSocket server URL.
--   `accessToken` (optional): Token for authentication.
 -   `autoConnect` (optional): Whether to connect immediately upon instantiation.
 -   `maxReconnectAttempts` (optional): Maximum number of reconnection attempts.
 -   `maxQueueSize` (optional): Maximum size of the message queue.
