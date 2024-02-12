@@ -1,10 +1,6 @@
 # Created by https://www.toptal.com/developers/gitignore/api/git,node,linux,macos,windows,sublimetext
 # Edit at https://www.toptal.com/developers/gitignore?templates=git,node,linux,macos,windows,sublimetext
 
-docs
-
-#TODO: remove
-.github 
 
 ### Git ###
 # Created by git for backups. To disable backups in Git:
