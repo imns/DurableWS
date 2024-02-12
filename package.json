@@ -13,11 +13,14 @@
         }
     },
     "files": [
-        "dist"
+        "dist",
+        "LICENSE"
     ],
     "scripts": {
         "test": "vitest",
+        "prebuild": "npm run clean",
         "build": "npm run clean && tsc && vite build",
+        "prepublishOnly": "npm run build",
         "lint": "eslint src/",
         "clean": "rimraf dist"
     },
