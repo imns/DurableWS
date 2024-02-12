@@ -6,11 +6,13 @@ export interface WebSocketClientConfig {
     maxReconnectAttempts?: number;
     maxQueueSize?: number;
     idleTimeout?: number; // in milliseconds
+    authTokenURL?: string; // Optional tokenURL for token issuance
+    getToken?: () => Promise<string> | string;
 }
 
 export interface WebSocketClient {
     send: (message: Record<string, unknown>) => void;
-    subscribe: (channelName: string) => void;
+    // subscribe: (channelName: string) => void;
     connect: () => void;
     disconnect: () => void;
     isReady: () => Promise<void>;

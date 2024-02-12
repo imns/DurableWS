@@ -39,19 +39,17 @@ const client = await createClient({
     maxReconnectAttempts: 5,
     maxQueueSize: 50,
     idleTimeout: 300000, // 5 minutes
+    getToken: async () => {
+        const response = await fetch("/my/token/issuer").then((r) => r.json());
+        return response.token;
+    },
 });
 ```
 
-Sending Messages
+### Sending Messages
 
 ```typescript
 client.send({ action: "greet", data: { message: "Hello, World!" } });
-```
-
-### Subscribing to Channels
-
-```typescript
-client.subscribe("updates");
 ```
 
 ### Handling Events
@@ -92,6 +90,8 @@ Initializes and returns a WebSocket client instance.
 -   `maxReconnectAttempts` (optional): Maximum number of reconnection attempts.
 -   `maxQueueSize` (optional): Maximum size of the message queue.
 -   `idleTimeout` (optional): Duration in milliseconds before the client is considered idle.
+-   `authTokenURL` (optional): A URL for token issuance.
+-   `getToken (optional): Function that returns a token for authentication. Can be synchronous or asynchronous.
 
 ### WebSocketClient Methods
 

@@ -8,13 +8,6 @@ import type {
     OnIdleHandler,
 } from "./types";
 import { WebSocketClientState } from "./types";
-import {
-    $token,
-    $messageQueue,
-    $queuePush,
-    $queueShift,
-    $queueUnshift,
-} from "../../stores";
 
 let instance: WebSocketClient | null = null;
 
@@ -28,6 +21,11 @@ export async function createClient(
     let ws: WebSocket | null = null;
 
     const maxQueueSize = config.maxQueueSize || 10;
+
+    const messageQueue: Record<string, unknown>[] = [];
+
+    // Auth
+    let token: string | undefined;
 
     // Reconnect
     const maxReconnectAttempts = config.maxReconnectAttempts || 5;
@@ -56,25 +54,29 @@ export async function createClient(
     resetIdleTimer();
 
     // Grab or create a client token
-    if (!$token.get()) {
-        const baseURL = import.meta.env?.PUBLIC_API_URL;
-        const tokenData = await fetch(`${baseURL}/auth/token`).then((r) =>
+    if (config.getToken) {
+        token = await config.getToken();
+    } else if (!token && config.authTokenURL) {
+        // Default token fetching logic if `getToken` is not provided but `authBaseUrl` is
+        const tokenData = await fetch(config.authTokenURL).then((r) =>
             r.json()
         );
-        $token.set(tokenData.token);
+        token = tokenData.token;
     }
 
     const reconnect = (attempt = 0) => {
-        // Adding 'Authorization' header would be ideal, but it's not supported by WebSocket API
-        ws = new WebSocket(
-            `${config.url}?token=${encodeURIComponent($token.get() ?? "")}`
-        );
+        let wsUrl = config.url;
+        if (token) {
+            // Adding 'Authorization' header would be ideal, but it's not supported by WebSocket API
+            wsUrl += `?token=${encodeURIComponent(token)}`;
+        }
+        ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
             // Try to send all the messages in the queue
             let message: any;
-            while ($messageQueue.get().length > 0) {
-                message = $queueShift();
+            while (messageQueue.length > 0) {
+                message = messageQueue.shift();
                 try {
                     if (message && ws?.readyState === WebSocket?.OPEN) {
                         ws.send(JSON.stringify(message));
@@ -86,7 +88,7 @@ export async function createClient(
                 } catch (err) {
                     console.error(err);
                     // If sending the message failed, put it back into the queue
-                    $queueUnshift(message);
+                    messageQueue.unshift(message);
                     // localStorage.setItem(STORAGE_KEY, JSON.stringify(queue));
                     break;
                 }
@@ -141,22 +143,23 @@ export async function createClient(
             ws.send(JSON.stringify(message));
         } else if (ws?.readyState !== WebSocket?.CLOSED) {
             // Push the new message to the end of the queue
-            $queuePush(message);
+            messageQueue.push(message);
             // If the queue size exceeds maxQueueSize, remove the oldest message from the start of the queue
-            if ($messageQueue.get().length > maxQueueSize) {
-                $queueShift();
+            if (messageQueue.length > maxQueueSize) {
+                messageQueue.shift();
             }
         }
     };
 
-    const subscribe = (channelName: string) => {
-        send({
-            action: "channel:subscribe",
-            message: {
-                channelName: channelName,
-            },
-        });
-    };
+    // TODO: Implement channel subscription
+    // const subscribe = (channelName: string) => {
+    //     send({
+    //         action: "channel:subscribe",
+    //         message: {
+    //             channelName: channelName,
+    //         },
+    //     });
+    // };
 
     const connect = () => {
         if (!ws || ws.readyState === WebSocket?.CLOSED) {
@@ -259,7 +262,7 @@ export async function createClient(
 
     instance = {
         send,
-        subscribe,
+        // subscribe,
         onMessage,
         onError,
         onOpen,
