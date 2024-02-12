@@ -1,7 +1,5 @@
-// import { createClient } from "./client";
-// import { WebSocketClientState, WebSocketClientConfig } from "./types";
-// import Server from "jest-websocket-mock";
-// import "jest-localstorage-mock";
+import { describe, it } from "vitest";
+import { createClient } from "../src/client";
 
 // const STORAGE_KEY = "sprinthq:test:messageQueue";
 // let server: Server;

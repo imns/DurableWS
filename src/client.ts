@@ -5,7 +5,7 @@ import type {
     OnErrorHandler,
     OnOpenHandler,
     OnCloseHandler,
-    OnIdleHandler,
+    OnIdleHandler
 } from "./types";
 import { WebSocketClientState } from "./types";
 
@@ -74,6 +74,7 @@ export async function createClient(
 
         ws.onopen = () => {
             // Try to send all the messages in the queue
+            /* eslint-disable  @typescript-eslint/no-explicit-any */
             let message: any;
             while (messageQueue.length > 0) {
                 message = messageQueue.shift();
@@ -207,7 +208,7 @@ export async function createClient(
         error: [] as OnErrorHandler[],
         open: [] as OnOpenHandler[],
         close: [] as OnCloseHandler[],
-        idle: [] as OnIdleHandler[],
+        idle: [] as OnIdleHandler[]
     };
 
     const onMessage = (listener: OnMessageHandler) => {
@@ -271,7 +272,7 @@ export async function createClient(
         connect,
         disconnect,
         isReady,
-        getStatus,
+        getStatus
     };
 
     if (config.autoConnect !== false) {

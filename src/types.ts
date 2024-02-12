@@ -29,7 +29,7 @@ export enum WebSocketClientState {
     CONNECTING = "CONNECTING",
     CONNECTED = "CONNECTED",
     CLOSING = "CLOSING",
-    CLOSED = "CLOSED",
+    CLOSED = "CLOSED"
 }
 
 export type OnMessageHandler = (message: Record<string, unknown>) => void;
