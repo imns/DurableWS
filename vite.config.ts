@@ -7,12 +7,15 @@ import dts from "vite-plugin-dts";
 
 // https://vitejs.dev/guide/build.html#library-mode
 export default defineConfig({
+    base: "./",
     build: {
         lib: {
             entry: resolve(__dirname, "src/index.ts"),
             name: "durablews",
-            fileName: "durablews",
-        },
+            // fileName: "durablews"
+            // formats: ["es", "cjs", "umd", "iife"],
+            fileName: (format) => `durablews.${format}.js`
+        }
     },
-    plugins: [dts()],
+    plugins: [dts({ rollupTypes: true, insertTypesEntry: true })]
 });

@@ -3,13 +3,14 @@
     "version": "1.0.0",
     "description": "A resilient, TypeScript-based WebSocket client",
     "type": "module",
-    "main": "./dist/durablews.umd.cjs",
-    "module": "./dist/durablews.js",
+    "main": "./dist/durablews.umd.js",
+    "module": "./dist/durablews.es.js",
     "types": "./dist/index.d.ts",
     "exports": {
         ".": {
-            "import": "./dist/durablews.js",
-            "require": "./dist/durablews.umd.cjs"
+            "types": "./dist/index.d.ts",
+            "import": "./dist/durablews.es.js",
+            "require": "./dist/durablews.umd.js"
         }
     },
     "files": [
