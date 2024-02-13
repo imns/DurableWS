@@ -1,6 +1,6 @@
 {
     "name": "durablews",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "A resilient, TypeScript-based WebSocket client",
     "type": "module",
     "main": "./dist/durablews.umd.js",
