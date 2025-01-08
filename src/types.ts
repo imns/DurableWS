@@ -4,12 +4,10 @@ export interface WebSocketClientConfig {
 }
 
 export interface WebSocketClient {
-    // TODO: Add other methods here
-}
-
-interface Message {
-    type: string;
-    payload: Record<string, unknown>;
+    connect: () => void;
+    close: () => void;
+    emit: (data: unknown) => void;
+    on: (eventName: string, handler: (payload: unknown) => void) => void;
 }
 
 export interface EventBus {
