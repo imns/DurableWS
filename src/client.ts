@@ -2,10 +2,13 @@ import type {
     WebSocketClientConfig,
     WebSocketClient,
     EventBus,
-    StateMachine
+    StateMachine,
+    Middleware,
+    MiddlewareContext
 } from "@/types";
 import { defineEventBus } from "@/helpers/event-bus";
 import { defineStateMachine } from "@/helpers/state-machine";
+import { compose } from "@/helpers/compose";
 import { safeJSONParse } from "@/utils";
 
 export function client(config: WebSocketClientConfig): WebSocketClient {
@@ -13,7 +16,28 @@ export function client(config: WebSocketClientConfig): WebSocketClient {
     const eventBus: EventBus = defineEventBus();
     const sm: StateMachine = defineStateMachine(eventBus);
 
-    function connect() {
+    const middleware: Middleware[] = [];
+
+    const context: MiddlewareContext = {
+        eventBus,
+        state: sm,
+        config,
+        ws: null as WebSocket | null // Share WebSocket in the context.
+    };
+
+    const composedMiddleware = compose(middleware);
+
+    function use(mw: Middleware | Middleware[]) {
+        if (Array.isArray(mw)) {
+            middleware.push(...mw);
+        } else {
+            middleware.push(mw);
+        }
+    }
+
+    async function connect() {
+        await composedMiddleware(context);
+
         if (ws) {
             // If not closed, no need to reconnect
             if (ws.readyState !== WebSocket.CLOSED) {
@@ -55,6 +79,7 @@ export function client(config: WebSocketClientConfig): WebSocketClient {
         connect,
         close,
         on,
-        send
+        send,
+        use
     };
 }
