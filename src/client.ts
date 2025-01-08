@@ -1,9 +1,17 @@
-import type { WebSocketClientConfig, WebSocketClient, EventBus } from "@/types";
+import type {
+    WebSocketClientConfig,
+    WebSocketClient,
+    EventBus,
+    StateMachine
+} from "@/types";
 import { defineEventBus } from "@/helpers/event-bus";
+import { defineStateMachine } from "@/helpers/state-machine";
+import { safeJSONParse } from "@/utils";
 
 export function client(config: WebSocketClientConfig): WebSocketClient {
     let ws: WebSocket | null = null;
     const eventBus: EventBus = defineEventBus();
+    const sm: StateMachine = defineStateMachine(eventBus);
 
     function connect() {
         if (ws) {
@@ -13,20 +21,19 @@ export function client(config: WebSocketClientConfig): WebSocketClient {
             }
         }
 
+        sm.transition("connecting");
+
         ws = new WebSocket(config.url);
 
         // Raw WebSocket events
-        ws.onopen = () => {
-            eventBus.emit("connect", undefined);
-        };
+        ws.onopen = () => sm.transition("connected");
+        ws.onclose = () => sm.transition("close");
         ws.onerror = (err) => {
             eventBus.emit("error", err);
         };
-        ws.onclose = (closeEvent) => {
-            eventBus.emit("close", closeEvent);
-        };
-        ws.onmessage = (messageEvent) => {
-            eventBus.emit("message", messageEvent);
+        ws.onmessage = (event) => {
+            const message = safeJSONParse<unknown>(event.data);
+            eventBus.emit("message", message);
         };
     }
 
@@ -35,7 +42,7 @@ export function client(config: WebSocketClientConfig): WebSocketClient {
         ws = null;
     }
 
-    function emit(data: unknown) {
+    function send(data: unknown) {
         ws?.send(JSON.stringify(data));
     }
 
@@ -48,6 +55,6 @@ export function client(config: WebSocketClientConfig): WebSocketClient {
         connect,
         close,
         on,
-        emit
+        send
     };
 }

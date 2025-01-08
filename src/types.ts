@@ -6,14 +6,20 @@ export interface WebSocketClientConfig {
 export interface WebSocketClient {
     connect: () => void;
     close: () => void;
-    emit: (data: unknown) => void;
+    send: (data: unknown) => void;
     on: (eventName: string, handler: (payload: unknown) => void) => void;
 }
 
+export type SocketEvent =
+    | "connecting"
+    | "connected"
+    | "close"
+    | "retry"
+    | "disconnect";
 export interface EventBus {
     on<T = unknown>(eventName: string, handler: (payload: T) => void): void;
     off<T = unknown>(eventName: string, handler: (payload: T) => void): void;
-    emit<T = unknown>(eventName: string, payload: T): void;
+    emit<T = unknown>(eventName: string, payload?: T): void;
 }
 
 export enum SocketState {
@@ -21,5 +27,10 @@ export enum SocketState {
     CONNECTING = "CONNECTING",
     CONNECTED = "CONNECTED",
     RECONNECTING = "RECONNECTING",
-    DISCONNECTED = "DISCONNECTED"
+    CLOSED = "CLOSED"
+}
+
+export interface StateMachine {
+    transition: (event: SocketEvent) => SocketState;
+    getState: () => SocketState;
 }

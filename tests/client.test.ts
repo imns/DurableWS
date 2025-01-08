@@ -39,7 +39,7 @@ describe("Client", () => {
 
     it("should send a message", async () => {
         const message = { type: "test", payload: "hello" };
-        wsClient.emit(message);
+        wsClient.send(message);
 
         await expect(server).toReceiveMessage(JSON.stringify(message));
         expect(server).toHaveReceivedMessages([JSON.stringify(message)]);
@@ -49,7 +49,7 @@ describe("Client", () => {
         const messageHandler = vi.fn();
         wsClient.on("message", messageHandler);
 
-        server.send("test message");
+        server.send(JSON.stringify({ data: "test message" }));
         // Wait for the message to be processed
         await wait(100);
 
@@ -62,7 +62,7 @@ describe("Client", () => {
 
     it("should handle connection close", async () => {
         const closeHandler = vi.fn();
-        wsClient.on("close", closeHandler);
+        wsClient.on("closed", closeHandler);
 
         server.close();
         // Wait for the close event to be processed
