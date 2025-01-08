@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { defineEventBus } from "../src/events/event-bus";
+import { defineEventBus } from "../src/helpers/event-bus";
 import type { EventBus } from "../src/types";
 
 describe("Event Bus", () => {

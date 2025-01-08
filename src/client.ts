@@ -1,5 +1,5 @@
 import type { WebSocketClientConfig, WebSocketClient, EventBus } from "@/types";
-import { defineEventBus } from "@/events/event-bus";
+import { defineEventBus } from "@/helpers/event-bus";
 
 export function client(config: WebSocketClientConfig): WebSocketClient {
     let ws: WebSocket | null = null;

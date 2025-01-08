@@ -15,3 +15,11 @@ export interface EventBus {
     off<T = unknown>(eventName: string, handler: (payload: T) => void): void;
     emit<T = unknown>(eventName: string, payload: T): void;
 }
+
+export enum SocketState {
+    IDLE = "IDLE", // not yet connected
+    CONNECTING = "CONNECTING",
+    CONNECTED = "CONNECTED",
+    RECONNECTING = "RECONNECTING",
+    DISCONNECTED = "DISCONNECTED"
+}
