@@ -36,8 +36,6 @@ export function client(config: WebSocketClientConfig): WebSocketClient {
     }
 
     async function connect() {
-        await composedMiddleware(context);
-
         if (ws) {
             // If not closed, no need to reconnect
             if (ws.readyState !== WebSocket.CLOSED) {
