@@ -1,6 +1,7 @@
 export interface WebSocketClientConfig {
     url: string;
-    // TODO: Add other config options here
+    autoConnect?: boolean;
+    maxReconnectAttempts?: number;
 }
 
 export interface WebSocketClient {
