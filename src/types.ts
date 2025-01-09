@@ -8,7 +8,6 @@ export interface WebSocketClient {
     close: () => void;
     send: (data: unknown) => void;
     on: (eventName: string, handler: (payload: unknown) => void) => void;
-    use: (middleware: Middleware | Middleware[]) => void;
 }
 
 export type SocketEvent =
@@ -34,15 +33,4 @@ export enum SocketState {
 export interface StateMachine {
     transition: (event: SocketEvent) => SocketState;
     getState: () => SocketState;
-}
-
-export type Middleware = (
-    context: MiddlewareContext,
-    next: () => Promise<void>
-) => Promise<void>;
-
-export interface MiddlewareContext {
-    eventBus: EventBus;
-    state: StateMachine;
-    [key: string]: any;
 }
