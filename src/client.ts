@@ -1,39 +1,83 @@
-import type {
-    WebSocketClientConfig,
-    WebSocketClient,
-    EventBus,
-    StateMachine
-} from "@/types";
-import { defineEventBus } from "@/helpers/event-bus";
-import { defineStateMachine } from "@/helpers/state-machine";
+// client.ts
+import type { WebSocketClientConfig, WebSocketClient, Action } from "@/types";
+import { defineStore } from "@/helpers/store";
 import { safeJSONParse } from "@/utils";
 
 export function client(config: WebSocketClientConfig): WebSocketClient {
     let ws: WebSocket | null = null;
-    const eventBus: EventBus = defineEventBus();
-    const sm: StateMachine = defineStateMachine(eventBus);
+
+    // 1. Define your state shape + rootReducer
+    interface MyState {
+        connected: boolean;
+        messages: string[];
+    }
+
+    function rootReducer(state: MyState, action: Action): MyState {
+        switch (action.type) {
+            case "connecting":
+                return { ...state };
+            case "open":
+                return { ...state, connected: true };
+            case "close":
+                console.log("close called");
+                return { ...state, connected: false };
+            case "message":
+                console.log("message called");
+                console.log("payload =>", action.payload);
+                return {
+                    ...state,
+                    messages: [...state.messages, String(action.payload)]
+                };
+            case "error":
+                console.log("error called");
+                // You could track the error or do something else
+                return { ...state };
+            default:
+                return state;
+        }
+    }
+
+    const store = defineStore<MyState>(
+        {
+            connected: false,
+            messages: []
+        },
+        rootReducer
+    );
+
+    // Listen to overall state changes for debugging
+    store.on("state-changed", (payload: { type: string; state: MyState }) => {
+        console.log(`EventBus => ${payload.type} caused state:`, payload.state);
+    });
 
     async function connect() {
-        if (ws) {
-            // If not closed, no need to reconnect
-            if (ws.readyState !== WebSocket.CLOSED) {
-                return;
-            }
+        console.log("connect() called");
+
+        if (ws && ws.readyState !== WebSocket.CLOSED) {
+            // If the socket is already open or opening, don't reconnect
+            return;
         }
 
-        sm.transition("connecting");
+        // Dispatch "connecting" to update state (or do nothing special)
+        store.dispatch("connecting");
 
         ws = new WebSocket(config.url);
 
         // Raw WebSocket events
-        ws.onopen = () => sm.transition("connected");
-        ws.onclose = () => sm.transition("close");
+        ws.onopen = () => {
+            store.dispatch("open");
+        };
+        ws.onclose = () => {
+            store.dispatch("close");
+        };
         ws.onerror = (err) => {
-            eventBus.emit("error", err);
+            console.log("onerror called");
+            store.dispatch("error", err);
         };
         ws.onmessage = (event) => {
+            console.log("onmessage called");
             const message = safeJSONParse<unknown>(event.data);
-            eventBus.emit("message", message);
+            store.dispatch("message", message);
         };
     }
 
@@ -43,18 +87,25 @@ export function client(config: WebSocketClientConfig): WebSocketClient {
     }
 
     function send(data: unknown) {
-        ws?.send(JSON.stringify(data));
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(data));
+        } else {
+            console.warn("WebSocket not open. Could not send message:", data);
+        }
     }
 
+    // Return an unsubscribe function so the caller can remove the handler
     function on<T = unknown>(eventName: string, handler: (payload: T) => void) {
-        eventBus.on<T>(eventName, handler);
-        return () => eventBus.off<T>(eventName, handler);
+        store.on<T>(eventName, handler);
+        return () => store.off<T>(eventName, handler);
     }
 
     return {
         connect,
         close,
         on,
-        send
+        send,
+        // Expose store.use so users can add their own single-function middlewares
+        use: store.use
     };
 }
