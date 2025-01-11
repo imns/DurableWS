@@ -94,7 +94,13 @@ export function client(config: WebSocketClientConfig): WebSocketClient {
             store.dispatch("connected");
         };
         ws.onclose = (closeEvent) => {
-            console.log("onclose called");
+            /*
+            CloseEvent:
+            - code: number
+            - reason: string
+            - wasClean: boolean
+            */
+
             store.dispatch("close", closeEvent);
         };
         ws.onerror = (err) => {
