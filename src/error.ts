@@ -15,7 +15,7 @@ export const errorCodes = {
     SERVICE_RESTART: 1012,
     TRY_AGAIN_LATER: 1013,
     BAD_GATEWAY: 1014,
-    TLS_HANDSHAKE: 1015,
+    TLS_HANDSHAKE: 1015
     // 1016-2999 reserved for future WebSocket Protocol specification
     // 3000-3999 reserved for libraries, frameworks and applications
     // 4000-4999 reserved for private use
