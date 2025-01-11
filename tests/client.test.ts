@@ -62,7 +62,7 @@ describe("Client", () => {
 
     it("should handle connection close", async () => {
         const closeHandler = vi.fn();
-        wsClient.on("closed", closeHandler);
+        wsClient.on("close", closeHandler);
 
         server.close();
         // Wait for the close event to be processed

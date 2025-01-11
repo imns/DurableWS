@@ -4,63 +4,72 @@ import type {
     Action,
     WebSocketClient
 } from "@/types";
-import { defineStore } from "@/helpers/store";
+import { SocketState } from "@/types";
+import { defineStore, composeReducers } from "@/helpers/store";
 import { safeJSONParse } from "@/utils";
 
 function connectionReducer(state: ClientState, action: Action): ClientState {
     switch (action.type) {
         case "connecting":
-            return { ...state };
+            return { ...state, connectionState: SocketState.CONNECTING };
         case "connected":
-            return { ...state, connected: true };
+            return {
+                ...state,
+                connected: true,
+                connectionState: SocketState.CONNECTED
+            };
         case "close":
-            return { ...state, connected: false };
+            // TODO: maybe reconnect?
+            return {
+                ...state,
+                connected: false,
+                connectionState: SocketState.CLOSED
+            };
         case "retry":
-            return { ...state };
+            return { ...state, connectionState: SocketState.RECONNECTING };
         case "disconnect":
-            return { ...state };
+            // TODO: maybe reconnect?
+            return {
+                ...state,
+                connected: false,
+                connectionState: SocketState.IDLE
+            };
         default:
             return state;
     }
 }
 
 function messageReducer(state: ClientState, action: Action): ClientState {
-    return {
-        ...state,
-        messages: [...state.messages, action.payload]
-    };
+    if (action.type === "message") {
+        console.log("messageReducer called", action.payload);
+        return {
+            ...state,
+            messages: [...state.messages, action.payload]
+        };
+    }
+    return state;
 }
 
 function errorReducer(state: ClientState, action: Action): ClientState {
-    console.error("errorReducer called", action.payload);
-    return { ...state };
-}
-
-function rootReducer(state: ClientState, action: Action): ClientState {
-    switch (action.type) {
-        case "connecting":
-        case "connected":
-        case "close":
-        case "retry":
-        case "disconnect":
-            return connectionReducer(state, action);
-
-        case "message":
-            return messageReducer(state, action);
-
-        case "error":
-            return errorReducer(state, action);
-
-        default:
-            return state;
+    if (action.type === "error") {
+        // console.error("errorReducer called", action.payload);
+        return { ...state };
     }
+    return state;
 }
+
+const rootReducer = composeReducers<ClientState>(
+    connectionReducer,
+    messageReducer,
+    errorReducer
+);
 
 export function client(config: WebSocketClientConfig): WebSocketClient {
     let ws: WebSocket | null = null;
 
     const initialState: ClientState = {
         connected: false,
+        connectionState: SocketState.IDLE,
         messages: []
     };
 
@@ -85,7 +94,7 @@ export function client(config: WebSocketClientConfig): WebSocketClient {
             store.dispatch("connected");
         };
         ws.onclose = (closeEvent) => {
-            console.log("onclose called", closeEvent);
+            console.log("onclose called");
             store.dispatch("close", closeEvent);
         };
         ws.onerror = (err) => {

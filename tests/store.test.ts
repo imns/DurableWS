@@ -1,49 +1,78 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 // https://github.com/akiomik/vitest-websocket-mock
-import WS from "vitest-websocket-mock";
-import { client } from "../src/client";
-import type { WebSocketClient } from "../src/types";
+import { defineStore } from "../src/helpers/store";
+import type { Action } from "../src/types";
 
-const WEBSOCKET_URL = "ws://localhost:1234";
+// Define a type for the message
+type Message = { text: string };
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const initialState = {
+    messages: [] as Message[] // Explicitly type the messages array
+};
+
+const rootReducer = (state: typeof initialState, action: Action) => {
+    switch (action.type) {
+        case "ADD_MESSAGE":
+            return {
+                ...state,
+                messages: [...state.messages, action.payload as Message] // Cast payload to Message
+            };
+        default:
+            return state;
+    }
+};
 
 describe("Store", () => {
-    let server: WS;
-    let wsClient: WebSocketClient;
+    let store: ReturnType<typeof defineStore>;
 
-    beforeEach(async () => {
-        server = new WS(WEBSOCKET_URL);
-        wsClient = client({
-            url: WEBSOCKET_URL
-        });
-        await wsClient.connect();
-        await server.connected;
+    beforeEach(() => {
+        store = defineStore(initialState, rootReducer);
     });
 
     afterEach(() => {
-        WS.clean();
+        // Clean up any side effects here if necessary
     });
 
-    it("it should work", async () => {
-        const spy = vi.fn();
-        wsClient.on("close", spy);
+    it("should return the initial state", () => {
+        expect(store.getState()).toEqual(initialState);
+    });
 
-        const loggerMiddleware = ({ action, store, next }) => {
-            console.log("[logger] Dispatching:", action);
-            const result = next(action);
-            console.log("[logger] Next state:", store.getState());
-            return result;
-        };
+    it("should update state on dispatch", () => {
+        const message: Message = { text: "Hello, world!" };
+        store.dispatch("ADD_MESSAGE", message);
+        expect((store.getState() as typeof initialState).messages).toContain(
+            message
+        );
+    });
 
-        // wsClient.use(loggerMiddleware);
+    it("should not update state for unknown action", () => {
+        const prevState = store.getState();
+        store.dispatch("UNKNOWN_ACTION");
+        expect(store.getState()).toEqual(prevState);
+    });
 
-        // wsClient.send({ type: "message", payload: "hello" });
+    it("should emit events on state change", () => {
+        const message: Message = { text: "Hello, world!" };
+        const onStateChanged = vi.fn();
+        store.on("state-changed", onStateChanged);
 
-        server.send(JSON.stringify({ data: "test message" }));
-        wsClient.close();
-        await wait(100);
+        store.dispatch("ADD_MESSAGE", message);
 
-        expect(spy).toHaveBeenCalled();
+        expect(onStateChanged).toHaveBeenCalledWith({
+            type: "ADD_MESSAGE",
+            state: store.getState()
+        });
+    });
+
+    it("should allow unsubscribing from events", () => {
+        const onStateChanged = vi.fn();
+        store.on("state-changed", onStateChanged);
+
+        store.dispatch("ADD_MESSAGE", { text: "Hello, world!" });
+        store.off("state-changed", onStateChanged);
+
+        store.dispatch("ADD_MESSAGE", { text: "Another message" });
+
+        expect(onStateChanged).toHaveBeenCalledTimes(1);
     });
 });

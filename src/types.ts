@@ -8,6 +8,7 @@ export type Message = string | unknown;
 export interface ClientState {
     messages: Message[];
     connected: boolean;
+    connectionState: SocketState;
 }
 
 export interface WebSocketClient {
