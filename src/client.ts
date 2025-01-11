@@ -3,44 +3,44 @@ import type { WebSocketClientConfig, WebSocketClient, Action } from "@/types";
 import { defineStore } from "@/helpers/store";
 import { safeJSONParse } from "@/utils";
 
+interface MyState {
+    connected: boolean;
+    messages: string[];
+}
+
+function rootReducer(state: MyState, action: Action): MyState {
+    switch (action.type) {
+        case "connecting":
+            return { ...state };
+        case "open":
+            return { ...state, connected: true };
+        case "close":
+            console.log("close called");
+            return { ...state, connected: false };
+        case "message":
+            console.log("message called");
+            console.log("payload =>", action.payload);
+            return {
+                ...state,
+                messages: [...state.messages, String(action.payload)]
+            };
+        case "error":
+            console.log("error called");
+            // You could track the error or do something else
+            return { ...state };
+        default:
+            return state;
+    }
+}
+
 export function client(config: WebSocketClientConfig): WebSocketClient {
     let ws: WebSocket | null = null;
-
-    // 1. Define your state shape + rootReducer
-    interface MyState {
-        connected: boolean;
-        messages: string[];
-    }
-
-    function rootReducer(state: MyState, action: Action): MyState {
-        switch (action.type) {
-            case "connecting":
-                return { ...state };
-            case "open":
-                return { ...state, connected: true };
-            case "close":
-                console.log("close called");
-                return { ...state, connected: false };
-            case "message":
-                console.log("message called");
-                console.log("payload =>", action.payload);
-                return {
-                    ...state,
-                    messages: [...state.messages, String(action.payload)]
-                };
-            case "error":
-                console.log("error called");
-                // You could track the error or do something else
-                return { ...state };
-            default:
-                return state;
-        }
-    }
 
     const store = defineStore<MyState>(
         {
             connected: false,
-            messages: []
+            messages: [],
+            ...config
         },
         rootReducer
     );

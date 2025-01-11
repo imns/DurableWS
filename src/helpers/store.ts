@@ -9,7 +9,8 @@ import {
 
 /**
  * This function takes a single-function middleware and returns
- * a triple-function:  mw(store)(next)(action)
+ * a triple-function: mw(store)(next)(action), which is done to
+ * improve DX.
  */
 export function wrapMiddleware<State>(
     middleware: MiddlewareWithContext<State>,
@@ -32,6 +33,8 @@ export function wrapMiddleware<State>(
  * - event bus for listening
  * - `use` for registering single-function middlewares
  */
+// Interface for the store
+
 export function defineStore<S>(
     initialState: S,
     rootReducer: (state: S, action: Action) => S
