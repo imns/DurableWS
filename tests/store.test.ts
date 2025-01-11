@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-// https://github.com/akiomik/vitest-websocket-mock
 import { defineStore } from "../src/helpers/store";
 import type { Action } from "../src/types";
 

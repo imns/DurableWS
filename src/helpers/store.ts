@@ -38,7 +38,7 @@ export function defineStore<S>(
     }
 
     // We'll keep a reference to the current dispatch (initially baseDispatch)
-    let dispatch: (action: Action) => Action | void = baseDispatch;
+    const dispatch: (action: Action) => Action | void = baseDispatch;
 
     function getState(): S {
         return state;
