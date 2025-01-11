@@ -1,60 +1,77 @@
-// client.ts
-import type { WebSocketClientConfig, WebSocketClient, Action } from "@/types";
+import type {
+    WebSocketClientConfig,
+    ClientState,
+    Action,
+    WebSocketClient
+} from "@/types";
 import { defineStore } from "@/helpers/store";
 import { safeJSONParse } from "@/utils";
+
+function connectionReducer(state: ClientState, action: Action): ClientState {
+    switch (action.type) {
+        case "connecting":
+            return { ...state };
+        case "connected":
+            return { ...state, connected: true };
+        case "close":
+            return { ...state, connected: false };
+        case "retry":
+            return { ...state };
+        case "disconnect":
+            return { ...state };
+        default:
+            return state;
+    }
+}
+
+function messageReducer(state: ClientState, action: Action): ClientState {
+    return {
+        ...state,
+        messages: [...state.messages, action.payload]
+    };
+}
+
+function errorReducer(state: ClientState, action: Action): ClientState {
+    console.error("errorReducer called", action.payload);
+    return { ...state };
+}
+
+function rootReducer(state: ClientState, action: Action): ClientState {
+    switch (action.type) {
+        case "connecting":
+        case "connected":
+        case "close":
+        case "retry":
+        case "disconnect":
+            return connectionReducer(state, action);
+
+        case "message":
+            return messageReducer(state, action);
+
+        case "error":
+            return errorReducer(state, action);
+
+        default:
+            return state;
+    }
+}
 
 export function client(config: WebSocketClientConfig): WebSocketClient {
     let ws: WebSocket | null = null;
 
-    // 1. Define your state shape + rootReducer
-    interface MyState {
-        connected: boolean;
-        messages: string[];
-    }
+    const initialState: ClientState = {
+        connected: false,
+        messages: []
+    };
 
-    function rootReducer(state: MyState, action: Action): MyState {
-        switch (action.type) {
-            case "connecting":
-                return { ...state };
-            case "open":
-                return { ...state, connected: true };
-            case "close":
-                console.log("close called");
-                return { ...state, connected: false };
-            case "message":
-                console.log("message called");
-                console.log("payload =>", action.payload);
-                return {
-                    ...state,
-                    messages: [...state.messages, String(action.payload)]
-                };
-            case "error":
-                console.log("error called");
-                // You could track the error or do something else
-                return { ...state };
-            default:
-                return state;
-        }
-    }
-
-    const store = defineStore<MyState>(
-        {
-            connected: false,
-            messages: []
-        },
-        rootReducer
-    );
-
-    // Listen to overall state changes for debugging
-    store.on("state-changed", (payload: { type: string; state: MyState }) => {
-        console.log(`EventBus => ${payload.type} caused state:`, payload.state);
-    });
+    const store = defineStore<ClientState>(initialState, rootReducer);
 
     async function connect() {
         console.log("connect() called");
 
+        // If the socket is already open or opening, don't reconnect
+        // Using the native WebSocket API just to be 100% sure
         if (ws && ws.readyState !== WebSocket.CLOSED) {
-            // If the socket is already open or opening, don't reconnect
             return;
         }
 
@@ -65,10 +82,11 @@ export function client(config: WebSocketClientConfig): WebSocketClient {
 
         // Raw WebSocket events
         ws.onopen = () => {
-            store.dispatch("open");
+            store.dispatch("connected");
         };
-        ws.onclose = () => {
-            store.dispatch("close");
+        ws.onclose = (closeEvent) => {
+            console.log("onclose called", closeEvent);
+            store.dispatch("close", closeEvent);
         };
         ws.onerror = (err) => {
             console.log("onerror called");
@@ -104,8 +122,6 @@ export function client(config: WebSocketClientConfig): WebSocketClient {
         connect,
         close,
         on,
-        send,
-        // Expose store.use so users can add their own single-function middlewares
-        use: store.use
+        send
     };
 }
