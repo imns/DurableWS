@@ -51,11 +51,11 @@ export function client(config: WebSocketClientConfig): WebSocketClient {
     });
 
     async function connect() {
-        console.log("connect() called");
-
-        if (ws && ws.readyState !== WebSocket.CLOSED) {
-            // If the socket is already open or opening, don't reconnect
-            return;
+        if (ws) {
+            // If not closed, no need to reconnect
+            if (ws.readyState !== WebSocket.CLOSED) {
+                return;
+            }
         }
 
         // Dispatch "connecting" to update state (or do nothing special)
