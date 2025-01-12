@@ -3,10 +3,10 @@ export interface WebSocketClientConfig {
     // TODO: Add other config options here
 }
 
-export type Message = string | unknown;
+export type Payload = string | unknown;
 
 export interface ClientState {
-    messages: Message[];
+    messages: Payload[];
     connected: boolean;
     connectionState: SocketState;
 }
@@ -42,7 +42,7 @@ export enum SocketState {
 }
 
 // Store
-export interface Action<T = Message> {
+export interface Action<T = Payload> {
     type: string;
     payload?: T;
 }

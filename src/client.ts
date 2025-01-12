@@ -1,68 +1,61 @@
 import type {
     WebSocketClientConfig,
     ClientState,
-    Action,
     WebSocketClient
 } from "@/types";
 import { SocketState } from "@/types";
-import { defineStore, composeReducers } from "@/helpers/store";
+import { defineStore } from "@/helpers/store";
 import { safeJSONParse } from "@/utils";
 
-function connectionReducer(state: ClientState, action: Action): ClientState {
-    switch (action.type) {
-        case "connecting":
-            return { ...state, connectionState: SocketState.CONNECTING };
-        case "connected":
-            return {
-                ...state,
-                connected: true,
-                connectionState: SocketState.CONNECTED
-            };
-        case "close":
-            // TODO: maybe reconnect?
-            return {
-                ...state,
-                connected: false,
-                connectionState: SocketState.CLOSED
-            };
-        case "retry":
-            return { ...state, connectionState: SocketState.RECONNECTING };
-        case "disconnect":
-            // TODO: maybe reconnect?
-            return {
-                ...state,
-                connected: false,
-                connectionState: SocketState.IDLE
-            };
-        default:
-            return state;
-    }
-}
+// function connectionReducer(state: ClientState, action: Action): ClientState {
+//     switch (action.type) {
+//         case "connecting":
+//             return { ...state, connectionState: SocketState.CONNECTING };
+//         case "connected":
+//             return {
+//                 ...state,
+//                 connected: true,
+//                 connectionState: SocketState.CONNECTED
+//             };
+//         case "close":
+//             // TODO: maybe reconnect?
+//             return {
+//                 ...state,
+//                 connected: false,
+//                 connectionState: SocketState.CLOSED
+//             };
+//         case "retry":
+//             return { ...state, connectionState: SocketState.RECONNECTING };
+//         case "disconnect":
+//             // TODO: maybe reconnect?
+//             return {
+//                 ...state,
+//                 connected: false,
+//                 connectionState: SocketState.IDLE
+//             };
+//         default:
+//             return state;
+//     }
+// }
 
-function messageReducer(state: ClientState, action: Action): ClientState {
-    if (action.type === "message") {
-        console.log("messageReducer called", action.payload);
-        return {
-            ...state,
-            messages: [...state.messages, action.payload]
-        };
-    }
-    return state;
-}
+// function messageReducer(state: ClientState, action: Action): ClientState {
+//     if (action.type === "message") {
+//         console.log("messageReducer called", action.payload);
+//         return {
+//             ...state,
+//             messages: [...state.messages, action.payload]
+//         };
+//     }
+//     return state;
+// }
 
-function errorReducer(state: ClientState, action: Action): ClientState {
-    if (action.type === "error") {
-        // console.error("errorReducer called", action.payload);
-        return { ...state };
-    }
-    return state;
-}
-
-const rootReducer = composeReducers<ClientState>(
-    connectionReducer,
-    messageReducer,
-    errorReducer
-);
+// function errorReducer(state: ClientState, action: Action): ClientState {
+//     if (action.type === "error") {
+//         // console.error("errorReducer called", action.payload);
+//         return { ...state };
+//     }
+//     return state;
+// }
 
 export function client(config: WebSocketClientConfig): WebSocketClient {
     let ws: WebSocket | null = null;
@@ -73,7 +66,37 @@ export function client(config: WebSocketClientConfig): WebSocketClient {
         messages: []
     };
 
-    const store = defineStore<ClientState>(initialState, rootReducer);
+    const store = defineStore<ClientState>(initialState);
+
+    function onConnecting(state: ClientState) {
+        console.log("onConnecting called");
+        return { ...state, connectionState: SocketState.CONNECTING };
+    }
+
+    store.defineAction("connecting", onConnecting);
+
+    store.defineAction("connected", (state) => {
+        console.log("connected action called");
+        return {
+            ...state,
+            connected: true,
+            connectionState: SocketState.CONNECTED
+        };
+    });
+
+    store.defineAction("message", (state, payload) => {
+        console.log("message action called", payload);
+        return { ...state, messages: [...state.messages, payload] };
+    });
+
+    store.defineAction("close", (state) => {
+        console.log("close action called");
+        return {
+            ...state,
+            connected: false,
+            connectionState: SocketState.CLOSED
+        };
+    });
 
     async function connect() {
         console.log("connect() called");
@@ -91,6 +114,7 @@ export function client(config: WebSocketClientConfig): WebSocketClient {
 
         // Raw WebSocket events
         ws.onopen = () => {
+            console.log("onopen called");
             store.dispatch("connected");
         };
         ws.onclose = (closeEvent) => {
@@ -100,6 +124,7 @@ export function client(config: WebSocketClientConfig): WebSocketClient {
             - reason: string
             - wasClean: boolean
             */
+            console.log("onclose called");
 
             store.dispatch("close", closeEvent);
         };
