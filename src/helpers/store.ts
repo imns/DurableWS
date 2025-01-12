@@ -40,6 +40,9 @@ export interface Store<S> {
     on<T = unknown>(eventName: string, callback: (payload: T) => void): void;
     off<T = unknown>(eventName: string, callback: (payload: T) => void): void;
     defineAction(eventName: string, handler: HandlerFn<S>): void;
+    defineActions(
+        actions: Array<{ event: string; handler: HandlerFn<S> }>
+    ): void;
     use(...middlewares: Middleware<S>[]): void;
 }
 
@@ -52,12 +55,19 @@ export interface ActionRegistration<S> {
     handler: HandlerFn<S>;
 }
 
-export function composeActions<S>(...regs: ActionRegistration<S>[]) {
-    return (store: Store<S>) => {
-        regs.forEach(({ event, handler }) => {
-            store.defineAction(event, handler);
-        });
-    };
+// Todo: remove this
+// export function composeActions<S>(...regs: ActionRegistration<S>[]) {
+//     return (store: Store<S>) => {
+//         regs.forEach(({ event, handler }) => {
+//             store.defineAction(event, handler);
+//         });
+//     };
+// }
+
+export function composeActions<S>(
+    ...actions: Array<() => { event: string; handler: HandlerFn<S> }>
+): Array<{ event: string; handler: HandlerFn<S> }> {
+    return actions.map((action) => action());
 }
 
 /**
@@ -106,6 +116,12 @@ export function defineStore<S>(initialState: S): Store<S> {
         const existing = actionHandlers.get(eventName) ?? [];
         existing.push(handler);
         actionHandlers.set(eventName, existing);
+    }
+
+    function defineActions(
+        actions: Array<{ event: string; handler: HandlerFn<S> }>
+    ) {
+        actions.forEach(({ event, handler }) => defineAction(event, handler));
     }
 
     /** Add one or more middleware functions. */
@@ -201,6 +217,7 @@ export function defineStore<S>(initialState: S): Store<S> {
         getState,
         dispatch,
         defineAction,
+        defineActions,
         use,
         on: bus.on,
         off: bus.off
