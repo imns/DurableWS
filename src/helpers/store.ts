@@ -29,6 +29,7 @@ export function defineStore<S>(initialState: S): Store<S> {
 
     // Map from eventName -> list of handler functions
     const actionHandlers = new Map<string, Array<HandlerFn<S>>>();
+    // const middleware = new Map<string, Array<HandlerFn<S>>>();
 
     /**
      * Registers a handler for a specific event name
@@ -62,6 +63,13 @@ export function defineStore<S>(initialState: S): Store<S> {
 
     function getState(): S {
         return state;
+    }
+
+    /*
+     * Middleware
+     */
+    function use(middleware: Middleware) {
+        // TODO: Implement middleware
     }
 
     // Expose the standard event bus API for external subscriptions:
