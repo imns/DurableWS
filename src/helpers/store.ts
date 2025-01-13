@@ -1,69 +1,20 @@
 import { defineEventBus } from "./event-bus";
-import type { Action } from "@/types";
-
-/** A state-updater function triggered by an event. */
-export interface HandlerFn<S> {
-    (state: S, payload: unknown): S | void;
-}
-
-/** Middleware signature.
- *  The `context` includes the store, current action, etc.
- *  The `next` callback proceeds to the next middleware or final action.
- */
-export type Middleware<S> = (
-    context: MiddlewareContext<S>,
-    next: () => Promise<Action> | Action
-) => Promise<Action> | Action;
-
-/** Info passed to each middleware. */
-export interface MiddlewareContext<S> {
-    /** The action being dispatched right now. */
-    action: Action;
-    /** Current store state (before final handlers run). */
-    state: S;
-    /** Reference to the store.
-     *  - Some libraries expose the entire store;
-     *    you can omit certain methods if you want to limit the API.
-     */
-    dispatch: (
-        eventName: string,
-        payload?: unknown
-    ) => Promise<Action> | Action;
-    /** If you want the original event name/payload, you can store them here
-     *  or rely on `action.type` / `action.payload`.
-     */
-}
-
-export interface Store<S> {
-    getState(): S;
-    dispatch(eventName: string, payload?: unknown): Promise<Action> | Action;
-    on<T = unknown>(eventName: string, callback: (payload: T) => void): void;
-    off<T = unknown>(eventName: string, callback: (payload: T) => void): void;
-    defineAction(eventName: string, handler: HandlerFn<S>): void;
-    defineActions(
-        actions: Array<{ event: string; handler: HandlerFn<S> }>
-    ): void;
-    use(...middlewares: Middleware<S>[]): void;
-}
+import type {
+    Action,
+    HandlerFn,
+    Middleware,
+    MiddlewareContext,
+    Store
+} from "@/types";
 
 /**
- * A helper for registering multiple event-action mappings at once.
- * Each entry is { event, handler }.
+ * Compose a list of actions into a single list of { event, handler } pairs.
+ * This is useful for defining multiple actions at once, e.g.
+ *   store.defineActions(composeActions(
+ *       () => ({ event: "increment", handler: (state, payload) => ({ ...state, count: state.count + 1 }) }),
+ *       () => ({ event: "decrement", handler: (state, payload) => ({ ...state, count: state.count - 1 }) })
+ *   ));
  */
-export interface ActionRegistration<S> {
-    event: string;
-    handler: HandlerFn<S>;
-}
-
-// Todo: remove this
-// export function composeActions<S>(...regs: ActionRegistration<S>[]) {
-//     return (store: Store<S>) => {
-//         regs.forEach(({ event, handler }) => {
-//             store.defineAction(event, handler);
-//         });
-//     };
-// }
-
 export function composeActions<S>(
     ...actions: Array<() => { event: string; handler: HandlerFn<S> }>
 ): Array<{ event: string; handler: HandlerFn<S> }> {
@@ -108,6 +59,14 @@ export function defineStore<S>(initialState: S): Store<S> {
     // Ordered list of middlewares to run on each dispatch
     const middlewares: Middleware<S>[] = [];
 
+    // 1) New property to store references like { client, config, store, etc. }
+    let storeWideContext: Partial<MiddlewareContext<S>> = {};
+
+    // 2) Provide a simple method to set that context from the client:
+    function setContext(ctx: Partial<MiddlewareContext<S>>) {
+        storeWideContext = { ...storeWideContext, ...ctx };
+    }
+
     /**
      * Registers a handler for a specific event name
      * e.g. store.defineAction("increment", (state, payload) => newState)
@@ -124,7 +83,7 @@ export function defineStore<S>(initialState: S): Store<S> {
         actions.forEach(({ event, handler }) => defineAction(event, handler));
     }
 
-    /** Add one or more middleware functions. */
+    // Add one or more middleware functions
     function use(...mws: Middleware<S>[]) {
         middlewares.push(...mws);
     }
@@ -187,8 +146,14 @@ export function defineStore<S>(initialState: S): Store<S> {
                 return runHandlersAndEmit(type, payload);
             }
 
-            // Todo: maybe add some error handling here with try/catch
-            return middleware(context, () => executeMiddleware(i + 1));
+            // Merge storeWideContext with the per-dispatch fields:
+            const mergedContext: MiddlewareContext<S> = {
+                ...storeWideContext,
+                ...context
+            };
+
+            // Then call the current middleware with mergedContext
+            return middleware(mergedContext, () => executeMiddleware(i + 1));
         }
     }
 
@@ -200,11 +165,11 @@ export function defineStore<S>(initialState: S): Store<S> {
         payload?: unknown
     ): Promise<Action> | Action {
         const action: Action = { type: eventName, payload };
+        // The minimal context for this dispatch:
         const context: MiddlewareContext<S> = {
             action,
-            state,
-            dispatch
-        };
+            state
+        } as MiddlewareContext<S>;
         return applyMiddlewares(context);
     }
 
@@ -213,13 +178,18 @@ export function defineStore<S>(initialState: S): Store<S> {
     }
 
     // Expose the standard event bus API for external subscriptions:
-    return {
+    const store = {
         getState,
         dispatch,
         defineAction,
         defineActions,
         use,
         on: bus.on,
-        off: bus.off
+        off: bus.off,
+
+        // 4) Expose setContext so the client can give us references
+        setContext
     };
+
+    return store;
 }

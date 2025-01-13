@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import WS from "vitest-websocket-mock";
 import { client } from "../src/client";
 import type { WebSocketClient } from "../src/types";
-
+import { pingpong } from "../src/middleware/pingpong";
 const WEBSOCKET_URL = "ws://localhost:1234";
 
 // Helper: Wait for a given amount of milliseconds
@@ -80,5 +80,12 @@ describe("Client", () => {
         await wait(100);
 
         expect(errorHandler).toHaveBeenCalled();
+    });
+
+    // it should handle pingpong middleware
+    it("should handle pingpong middleware", async () => {
+        server.send("ping");
+        wsClient.use(pingpong);
+        await expect(server).toReceiveMessage("pong");
     });
 });
