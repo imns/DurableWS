@@ -3,7 +3,10 @@ import type { EventBus } from "@/types";
 export function defineEventBus(): EventBus {
     const listeners = new Map<string, Array<(payload: unknown) => void>>();
 
-    function on<T = unknown>(eventName: string, handler: (payload: T) => void) {
+    function on<T = unknown>(
+        eventName: string,
+        handler: (payload: T) => void
+    ): void {
         const handlers = listeners.get(eventName) ?? [];
         handlers.push(handler as (payload: unknown) => void);
         listeners.set(eventName, handlers);
