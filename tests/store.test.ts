@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { defineStore } from "../src/helpers/store";
+import { Store } from "../src/types";
 
 // Define a type for the message
 type Message = { text: string };
@@ -9,7 +10,7 @@ const initialState = {
 };
 
 describe("Store", () => {
-    let store: ReturnType<typeof defineStore<typeof initialState>>;
+    let store: Store<typeof initialState>;
 
     beforeEach(() => {
         store = defineStore<typeof initialState>(initialState);
@@ -142,7 +143,7 @@ describe("Store", () => {
     it("should handle async middleware with await next()", async () => {
         const middleware = vi.fn(async (ctx, next) => {
             await new Promise((resolve) => setTimeout(resolve, 10));
-            await next();
+            return await next();
         });
 
         store.use(middleware);
